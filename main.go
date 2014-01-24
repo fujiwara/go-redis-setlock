@@ -15,6 +15,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"fmt"
 )
 
 const (
@@ -22,6 +23,7 @@ const (
 	ExitCodeRedisDead               = 1
 	ExitCodeRedisUnsupportedVersion = 2
 	ExitCodeCannotGetLock           = 3
+	ExitCodePanic                   = 4
 	UnlockLUAScript                 = "if redis.call(\"get\",KEYS[1]) == ARGV[1]\nthen\nreturn redis.call(\"del\",KEYS[1])\nelse\nreturn 0\nend\n"
 )
 
@@ -47,6 +49,7 @@ func parseOptions() (opt *Options, key string, program string, args []string) {
 	var exitZero bool
 	var exitNonZero bool
 
+	flag.Usage = usage
 	flag.StringVar(&redis, "redis", "127.0.0.1:6379", "redis-server host:port")
 	flag.IntVar(&expires, "expires", DefaultExpires, "The lock will be auto-released after the expire time is reached.")
 	flag.BoolVar(&keep, "keep", false, "Keep the lock after invoked command exited.")
@@ -77,9 +80,17 @@ func parseOptions() (opt *Options, key string, program string, args []string) {
 		if len(remainArgs) >= 3 {
 			args = remainArgs[2:]
 		}
+	} else {
+		usage()
 	}
 
 	return opt, key, program, args
+}
+
+func usage() {
+	fmt.Fprintf(os.Stderr, "usage:\n    redis-setlock [-nNxX] KEY program [ arg ... ]\n\n")
+	flag.PrintDefaults()
+	os.Exit(2)
 }
 
 func run() int {
@@ -222,7 +233,8 @@ func invokeCommand(program string, args []string) (code int) {
 			if s, ok := e2.Sys().(syscall.WaitStatus); ok {
 				code = s.ExitStatus()
 			} else {
-				panic(errors.New("Unimplemented for system where exec.ExitError.Sys() is not syscall.WaitStatus."))
+				log.Println("Unimplemented for system where exec.ExitError.Sys() is not syscall.WaitStatus.")
+				return ExitCodePanic
 			}
 		}
 	} else {
@@ -233,9 +245,6 @@ func invokeCommand(program string, args []string) (code int) {
 
 func createToken() string {
 	b := make([]byte, 16)
-	_, err := crand.Read(b)
-	if err != nil {
-		panic(err)
-	}
+	crand.Read(b)
 	return hex.EncodeToString(b)
 }
