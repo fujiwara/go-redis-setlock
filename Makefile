@@ -1,5 +1,11 @@
-all:
-	@echo "do nothing"
+go-redis-setlock: main.go
+	go build
+
+test: go-redis-setlock
+	prove t
+
+clean:
+	rm go-redis-setlock index.html
 
 binary: main.go
 	script/build.sh
@@ -15,3 +21,4 @@ release: index.html
 	git commit -m "release binary"
 	git push origin gh-pages
 	git checkout -
+

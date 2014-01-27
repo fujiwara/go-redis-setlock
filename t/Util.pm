@@ -40,7 +40,7 @@ sub redis_setlock {
         timer { system("setlock", @args) };
     }
     else {
-        timer { system("./redis-setlock", @args) };
+        timer { system("./go-redis-setlock", @args) };
     }
 }
 

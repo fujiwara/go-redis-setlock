@@ -55,10 +55,10 @@ func parseOptions() (opt *Options, key string, program string, args []string) {
 	flag.StringVar(&redis, "redis", "127.0.0.1:6379", "redis-server host:port")
 	flag.IntVar(&expires, "expires", DefaultExpires, "The lock will be auto-released after the expire time is reached.")
 	flag.BoolVar(&keep, "keep", false, "Keep the lock after invoked command exited.")
-	flag.BoolVar(&noDelay, "n", false, "No delay. If KEY is locked by another process, redis-setlock gives up.")
-	flag.BoolVar(&delay, "N", true, "(Default.) Delay. If KEY is locked by another process, redis-setlock waits until it can obtain a new lock.")
-	flag.BoolVar(&exitZero, "x", false, "If KEY is locked, redis-setlock exits zero.")
-	flag.BoolVar(&exitNonZero, "X", true, "(Default.) If KEY is locked, redis-setlock prints an error message and exits nonzero.")
+	flag.BoolVar(&noDelay, "n", false, "No delay. If KEY is locked by another process, go-redis-setlock gives up.")
+	flag.BoolVar(&delay, "N", true, "(Default.) Delay. If KEY is locked by another process, go-redis-setlock waits until it can obtain a new lock.")
+	flag.BoolVar(&exitZero, "x", false, "If KEY is locked, go-redis-setlock exits zero.")
+	flag.BoolVar(&exitNonZero, "X", true, "(Default.) If KEY is locked, go-redis-setlock prints an error message and exits nonzero.")
 	flag.BoolVar(&showVersion, "version", false, fmt.Sprintf("version %s", Version))
 	flag.Parse()
 
@@ -96,7 +96,7 @@ func parseOptions() (opt *Options, key string, program string, args []string) {
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "usage:\n    redis-setlock [-nNxX] KEY program [ arg ... ]\n\n")
+	fmt.Fprintf(os.Stderr, "usage:\n    go-redis-setlock [-nNxX] KEY program [ arg ... ]\n\n")
 	flag.PrintDefaults()
 	os.Exit(2)
 }
