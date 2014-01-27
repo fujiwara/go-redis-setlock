@@ -25,6 +25,7 @@ const (
 	ExitCodeCannotGetLock           = 3
 	ExitCodePanic                   = 4
 	UnlockLUAScript                 = "if redis.call(\"get\",KEYS[1]) == ARGV[1]\nthen\nreturn redis.call(\"del\",KEYS[1])\nelse\nreturn 0\nend\n"
+	Version                         = "0.0.1"
 )
 
 type Options struct {
@@ -48,6 +49,7 @@ func parseOptions() (opt *Options, key string, program string, args []string) {
 	var delay bool
 	var exitZero bool
 	var exitNonZero bool
+	var showVersion bool
 
 	flag.Usage = usage
 	flag.StringVar(&redis, "redis", "127.0.0.1:6379", "redis-server host:port")
@@ -57,7 +59,13 @@ func parseOptions() (opt *Options, key string, program string, args []string) {
 	flag.BoolVar(&delay, "N", true, "(Default.) Delay. If KEY is locked by another process, redis-setlock waits until it can obtain a new lock.")
 	flag.BoolVar(&exitZero, "x", false, "If KEY is locked, redis-setlock exits zero.")
 	flag.BoolVar(&exitNonZero, "X", true, "(Default.) If KEY is locked, redis-setlock prints an error message and exits nonzero.")
+	flag.BoolVar(&showVersion, "version", false, fmt.Sprintf("version %s", Version))
 	flag.Parse()
+
+	if showVersion {
+		fmt.Fprintf(os.Stderr, "version: %s\n", Version)
+		os.Exit(0)
+	}
 
 	opt = &Options{
 		Redis:    redis,

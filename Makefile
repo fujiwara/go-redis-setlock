@@ -9,8 +9,9 @@ index.html: README.md
 
 release: index.html
 	git checkout gh-pages
-	script/build.sh
 	git merge master
+	script/build.sh
+	git add bin
 	git commit -m "release binary"
 	git push origin gh-pages
 	git checkout -
