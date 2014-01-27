@@ -10,6 +10,13 @@ Install to $GOPATH.
 
 ## Getting binary
 
+* [bin/darwin-386/go-redis-setlock](http://fujiwara.github.io/go-redis-setlock/bin/darwin-386/go-redis-setlock)
+* [bin/darwin-amd64/go-redis-setlock](http://fujiwara.github.io/go-redis-setlock/bin/darwin-amd64/go-redis-setlock)
+* [bin/linux-386/go-redis-setlock](http://fujiwara.github.io/go-redis-setlock/bin/linux-386/go-redis-setlock)
+* [bin/linux-amd64/go-redis-setlock](http://fujiwara.github.io/go-redis-setlock/bin/linux-amd64/go-redis-setlock)
+* [bin/linux-arm/go-redis-setlock](http://fujiwara.github.io/go-redis-setlock/bin/linux-arm/go-redis-setlock)
+* [bin/windows-386/go-redis-setlock](http://fujiwara.github.io/go-redis-setlock/bin/windows-386/go-redis-setlock)
+* [bin/windows-amd64/go-redis-setlock](http://fujiwara.github.io/go-redis-setlock/bin/windows-amd64/go-redis-setlock)
 
 ## Usage
 
