@@ -2,14 +2,18 @@
 
 Like the setlock command using Redis.
 
-## Build
+## Build & Install
 
-    $ go get github.com/fzzy/radix/redis
-    $ go build -o redis-setlock main.go
+Install to $GOPATH.
+
+    $ go get github.com/fujiwara/go-redis-setlock
+
+## Getting binary
+
 
 ## Usage
 
-    $ redis-setlock [-nNxX] KEY program [ arg ... ]
+    $ go-redis-setlock [-nNxX] KEY program [ arg ... ]
 
     --redis (Default: 127.0.0.1:6379): redis-host:redis-port
     --expires (Default: 86400): The lock will be auto-released after the expire time is reached.
