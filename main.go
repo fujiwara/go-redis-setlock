@@ -5,28 +5,32 @@ import (
 	"encoding/hex"
 	"errors"
 	"flag"
+	"fmt"
 	"github.com/fzzy/radix/redis"
 	"io"
 	"log"
-	"math/rand"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
-	"fmt"
 )
 
 const (
-	DefaultExpires                  = 86400
-	ExitCodeRedisDead               = 1
-	ExitCodeRedisUnsupportedVersion = 2
-	ExitCodeCannotGetLock           = 3
-	ExitCodePanic                   = 4
-	UnlockLUAScript                 = "if redis.call(\"get\",KEYS[1]) == ARGV[1]\nthen\nreturn redis.call(\"del\",KEYS[1])\nelse\nreturn 0\nend\n"
-	Version                         = "0.0.1"
+	DefaultExpires  = 86400
+	ExitCodeError   = 111
+	UnlockLUAScript = "if redis.call(\"get\",KEYS[1]) == ARGV[1]\nthen\nreturn redis.call(\"del\",KEYS[1])\nelse\nreturn 0\nend\n"
+	Version         = "0.0.1"
+	RetryInterval   = time.Duration(500) * time.Millisecond
 )
+
+var TrapSignals = []os.Signal{
+	syscall.SIGHUP,
+	syscall.SIGINT,
+	syscall.SIGTERM,
+	syscall.SIGQUIT}
 
 type Options struct {
 	Redis    string
@@ -71,7 +75,7 @@ func parseOptions() (opt *Options, key string, program string, args []string) {
 		Redis:    redis,
 		Keep:     keep,
 		Wait:     true,
-		ExitCode: ExitCodeCannotGetLock,
+		ExitCode: ExitCodeError,
 		Expires:  expires,
 	}
 	if noDelay {
@@ -106,12 +110,12 @@ func run() int {
 	c, err := connectToRedisServer(opt)
 	if err != nil {
 		log.Printf("Redis server seems down: %s\n", err)
-		return ExitCodeRedisDead
+		return ExitCodeError
 	}
 	defer c.Close()
 
 	if !validateRedisVersion(c) {
-		return ExitCodeRedisUnsupportedVersion
+		return ExitCodeError
 	}
 	token, err := tryGetLock(c, opt, key)
 	if err == nil {
@@ -137,10 +141,10 @@ func connectToRedisServer(opt *Options) (c *redis.Client, err error) {
 		}
 		end := time.Now()
 		elapsed := int(end.Sub(start) / time.Millisecond) // msec
-		if elapsed >= timeout * 1000 {
+		if elapsed >= timeout*1000 {
 			break
 		}
-		time.Sleep(time.Duration(500) * time.Millisecond)
+		time.Sleep(RetryInterval)
 	}
 	return c, err
 }
@@ -185,8 +189,7 @@ func tryGetLock(c *redis.Client, opt *Options, key string) (token string, err er
 		} else if !opt.Wait {
 			break
 		} else {
-			sleepMSec := rand.Intn(1000)
-			time.Sleep(time.Duration(sleepMSec) * time.Millisecond)
+			time.Sleep(RetryInterval)
 		}
 	}
 	if gotLock {
@@ -229,11 +232,33 @@ func invokeCommand(program string, args []string) (code int) {
 			stdin.Close()
 		} else {
 			log.Println(err)
+			stdin.Close()
 		}
 	}()
 	go io.Copy(os.Stdout, stdout)
 	go io.Copy(os.Stderr, stderr)
-	cmdErr := cmd.Wait()
+
+	var cmdErr error
+	cmdCh := make(chan error)
+	go func() {
+		cmdCh <- cmd.Wait()
+	}()
+
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, TrapSignals...)
+	select {
+	case s := <-signalCh:
+		cmd.Process.Signal(s) // forward to child
+		switch sig := s.(type) {
+		case syscall.Signal:
+			code = int(sig)
+			log.Printf("Got signal: %s(%d)", sig, sig)
+		default:
+			code = -1
+		}
+		<-cmdCh
+	case cmdErr = <-cmdCh:
+	}
 
 	// http://qiita.com/hnakamur/items/5e6f22bda8334e190f63
 	if cmdErr != nil {
@@ -242,11 +267,9 @@ func invokeCommand(program string, args []string) (code int) {
 				code = s.ExitStatus()
 			} else {
 				log.Println("Unimplemented for system where exec.ExitError.Sys() is not syscall.WaitStatus.")
-				return ExitCodePanic
+				return ExitCodeError
 			}
 		}
-	} else {
-		code = 0
 	}
 	return code
 }

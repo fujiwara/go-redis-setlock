@@ -35,12 +35,40 @@ sub timer(&) {
 sub redis_setlock {
     my @args = @_;
 
-    if ( $ENV{SETLOCK} ) {
-        @args = trim_args(@args);
-        timer { system("setlock", @args) };
+    if ($ENV{COMMAND}) {
+        @args = trim_args(@args) if $ENV{COMMAND} eq "setlock";
+        timer { system_with_pass_signal($ENV{COMMAND}, @args) };
     }
     else {
-        timer { system("./go-redis-setlock", @args) };
+        timer { system_with_pass_signal("./go-redis-setlock", @args) };
+    }
+}
+
+sub system_with_pass_signal {
+    my @command = @_;
+    if (my $pid = fork()) {
+        local $SIG{CHLD} = sub { };
+        local $SIG{TERM} = $SIG{HUP} = $SIG{INT} = $SIG{QUIT} = sub {
+            my $signal = shift;
+            warn "Got signal $signal";
+            kill $signal, $pid;
+        };
+        wait;
+    }
+    else {
+        exec @command;
+        die "???";
+    }
+    my $code = $?;
+    if ($code == -1) {
+        return $code;
+    }
+    elsif ($code & 127) {
+        return $code;
+    }
+    else {
+        $code = $code >> 8; # to raw exit code
+        return $code;
     }
 }
 
