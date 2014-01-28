@@ -3,7 +3,7 @@
 set -e
 set -u
 
-for GOOS in darwin windows
+for GOOS in darwin
 do
     for GOARCH in 386 amd64
     do
