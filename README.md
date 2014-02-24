@@ -2,6 +2,10 @@
 
 Like the setlock command using Redis.
 
+## Repository
+
+[github.com/fujiwara/go-redis-setlock](https://github.com/fujiwara/go-redis-setlock)
+
 ## Build & Install
 
 Install to $GOPATH.
